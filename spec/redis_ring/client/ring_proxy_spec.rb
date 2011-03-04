@@ -1,6 +1,6 @@
 require File.expand_path('../../../spec_helper', __FILE__)
 
-describe RedisRing::Client::RedisProxy do
+describe RedisRing::Client::RingProxy do
 
   def readable_params(params)
     translated = params.map do |type, name|
@@ -18,12 +18,16 @@ describe RedisRing::Client::RedisProxy do
   end
 
   it "should have the same public interface as Redis" do
-    difference = Redis.public_instance_methods - RedisRing::Client::RedisProxy.public_instance_methods
+    difference = Redis.public_instance_methods - RedisRing::Client::RingProxy.public_instance_methods
+
+    ignored = [:client, :id, :method_missing]
+
+    difference -= ignored
 
     unless difference == []
-      puts "Missing methods:"
+      puts "#{difference.size} missing methods:"
 
-      difference.each do |method_name|
+      difference.sort.each do |method_name|
         puts "#{method_name}(#{readable_params(Redis.instance_method(method_name).parameters)})"
       end
 
