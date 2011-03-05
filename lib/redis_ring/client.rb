@@ -1,4 +1,7 @@
+require 'zlib'
+
 require 'redis'
+require 'json'
 
 require 'redis_ring/client/operation_definitions'
 require 'redis_ring/client/ring_proxy'
