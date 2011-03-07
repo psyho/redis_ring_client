@@ -2,16 +2,8 @@ require File.expand_path('../../../spec_helper', __FILE__)
 
 describe RedisRing::Client::Sharder do
 
-  class FakeMetaData
-    attr_accessor :ring_size
-
-    def initialize(ring_size)
-      @ring_size = ring_size
-    end
-  end
-
   before(:each) do
-    @sharder = RedisRing::Client::Sharder.new(@meta_data = FakeMetaData.new(1024))
+    @sharder = RedisRing::Client::Sharder.new(@meta_data = FakeRingMetaData.new(1024))
   end
 
   it "should hash the same value always to the same shard" do

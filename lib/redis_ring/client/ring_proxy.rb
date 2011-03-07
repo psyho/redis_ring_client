@@ -85,7 +85,6 @@ module RedisRing
       scather_gather_operation :flushdb, :last_result
       scather_gather_operation :keys, :sum
       scather_gather_operation :quit, :last_result
-      scather_gather_operation :randomkey, :random_result
       scather_gather_operation :save, :last_result
       scather_gather_operation :select, :last_result
       scather_gather_operation :shutdown, :last_result
@@ -120,6 +119,7 @@ module RedisRing
 
       random_shard_operation :echo
       random_shard_operation :ping
+      random_shard_operation :randomkey
 
       multi_key_operation :blpop
       multi_key_operation :brpop
@@ -138,10 +138,10 @@ module RedisRing
       multi_key_operation :sunionstore
       multi_key_operation :unsubscribe
 
-      multi_set_operation :mapped_mset
-      multi_set_operation :mapped_msetnx
-      multi_set_operation :mset
-      multi_set_operation :msetnx
+      mapped_set_operation :mapped_mset
+      mapped_set_operation :mapped_msetnx
+      regular_set_operation :mset
+      regular_set_operation :msetnx
 
       multi_zstore_operation :zinterstore
       multi_zstore_operation :zunionstore
@@ -158,7 +158,30 @@ module RedisRing
       end
 
       def connection_for_key(key)
+        shard = sharder.shard_for_key(key)
+        return connection_pool.connection(shard)
       end
+
+      def each_connection(&block)
+        ring_meta_data.ring_size.times do |shard_no|
+          block.call(connection_pool.connection(shard_no))
+        end
+      end
+
+      protected
+
+      def ring_meta_data
+        @ring_meta_data ||= RingMetaData.new(@host, @port)
+      end
+
+      def sharder
+        @sharder ||= Sharder.new(ring_meta_data)
+      end
+
+      def connection_pool
+        @connection_pool = ShardConnectionPool.new(ring_meta_data, @password, @db)
+      end
+
     end
 
   end

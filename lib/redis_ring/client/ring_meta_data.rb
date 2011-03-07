@@ -19,6 +19,8 @@ module RedisRing
 
         @ring_size = hash['count']
         @shards = (0...@ring_size).map{|n| ShardMetaData.from_json(hash['shards'][n.to_s])}
+
+        @loaded = true
       end
 
       def ring_size

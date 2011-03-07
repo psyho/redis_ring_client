@@ -2,12 +2,26 @@ module RedisRing
   module Client
 
     class UnsupportedOperationError < StandardError; end
+    class MultiShardOperationError < UnsupportedOperationError; end
 
     module OperationDefinitions
 
       def self.included(klass)
         klass.send(:include, InstanceMethods)
+        klass.send(:include, GatherOperations)
         klass.extend(ClassMethods)
+      end
+
+      module GatherOperations
+
+        def last_result(array)
+          return array.last
+        end
+
+        def sum(array)
+          return array.reduce(:+)
+        end
+
       end
 
       module InstanceMethods
@@ -18,19 +32,28 @@ module RedisRing
         end
 
         def scather_gather_operation(name, gather, *args, &block)
-          raise "Not implemented yet"
+          results = []
+          each_connection do |conn|
+            results << conn.send(name, *args, &block)
+          end
+          return send(gather, results)
         end
 
         def unsupported_operation(name)
           raise UnsupportedOperationError.new("Operation #{name} is not supported by RedisRing!")
         end
 
-        def random_shard_operation(name, *args)
-          raise "Not implemented yet."
+        def random_shard_operation(name, *args, &block)
+          shard_no = rand(ring_meta_data.ring_size)
+          return connection_pool.connection(shard_no).send(name, *args, &block)
         end
 
         def single_connection_operation(name, keys, *args, &block)
-          raise "Not implemented yet."
+          shard_numbers = keys.map { |key| sharder.shard_for_key(key) }
+          unless shard_numbers.uniq.size == 1
+            raise MultiShardOperationError.new("Multi-shard atomic operations are not allowed. Try using {shard_secifier} suffix if you really need them. Operation: #{name}, Keys: #{keys.join(', ')}")
+          end
+          return connection_for_key(keys.first).send(name, *args, &block)
         end
 
       end
@@ -70,8 +93,8 @@ module RedisRing
         def random_shard_operation(name)
           self.class_eval <<-RUBY
 
-            def #{name}(*args)
-              random_shard_operation(:#{name}, *args)
+            def #{name}(*args, &block)
+              random_shard_operation(:#{name}, *args, &block)
             end
 
           RUBY
@@ -87,11 +110,21 @@ module RedisRing
           RUBY
         end
 
-        def multi_set_operation(name)
+        def mapped_set_operation(name)
           self.class_eval <<-RUBY
 
             def #{name}(hash, &block)
               return single_connection_operation(:#{name}, hash.keys, hash, &block)
+            end
+
+          RUBY
+        end
+
+        def regular_set_operation(name)
+          self.class_eval <<-RUBY
+
+            def #{name}(*keys_and_values, &block)
+              return single_connection_operation(:#{name}, Hash[*keys_and_values].keys, *keys_and_values, &block)
             end
 
           RUBY
