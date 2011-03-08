@@ -163,9 +163,13 @@ module RedisRing
       end
 
       def each_connection(&block)
+        threads = []
         ring_meta_data.ring_size.times do |shard_no|
-          block.call(connection_pool.connection(shard_no))
+          threads << Thread.new do
+            block.call(connection_pool.connection(shard_no))
+          end
         end
+        threads.each { |thread| thread.join }
       end
 
       protected
