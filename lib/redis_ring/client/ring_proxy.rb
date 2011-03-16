@@ -183,7 +183,7 @@ module RedisRing
       end
 
       def connection_pool
-        @connection_pool = ShardConnectionPool.new(ring_meta_data, @password, @db)
+        @connection_pool ||= ShardConnectionPool.new(ring_meta_data, @password, @db)
       end
 
     end
