@@ -42,15 +42,24 @@ module RedisRing
       end
 
       def get_shards_json_string(retries = 0)
-        @zookeeper ||= Zookeeper.new(zookeeper_addr)
+        @zookeeper ||= self.class.zookeeper(zookeeper_addr)
         @watcher = Zookeeper::WatcherCallback.new
         resp = @zookeeper.get(:path => "/cluster_status", :watcher => @watcher, :watcher_context => "/cluster_status")
         return resp[:data]
       rescue ZookeeperExceptions::ZookeeperException::ConnectionClosed
         raise if retries == 4
-        puts "reopening"
         @zookeeper.reopen
         return get_shards_json_string(retries + 1)
+      end
+
+      def self.zookeepers
+        @zookeepers ||= {}
+      end
+
+      # it appears that only a very limited number of zookeeper connections can be opened by a single client
+      # so we have to cache/share them between RingMetaData instances
+      def self.zookeeper(address)
+        self.zookeepers[address] ||= Zookeeper.new(address)
       end
 
     end
