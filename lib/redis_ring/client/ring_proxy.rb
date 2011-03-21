@@ -151,8 +151,7 @@ module RedisRing
       end
 
       def initialize(opts = {})
-        @host = opts[:host] || 'localhost'
-        @port = opts[:port] || 6400
+        @zookeeper = opts[:zookeeper] || 'localhost:2181'
         @db = opts[:db] || 0
         @password = opts[:password]
       end
@@ -175,7 +174,7 @@ module RedisRing
       protected
 
       def ring_meta_data
-        @ring_meta_data ||= RingMetaData.new(@host, @port)
+        @ring_meta_data ||= RingMetaData.new(@zookeeper)
       end
 
       def sharder

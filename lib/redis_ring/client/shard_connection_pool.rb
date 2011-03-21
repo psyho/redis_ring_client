@@ -13,15 +13,17 @@ module RedisRing
       end
 
       def connection(shard_number)
-        @connections[shard_number] ||= new_connection_to_shard(shard_number)
+        connection, conn_id = @connections[shard_number]
+        shard_metadata = metadata.shard(shard_number)
+        unless conn_id == shard_metadata.to_sym
+          connection = new_connection(shard_metadata.host, shard_metadata.port, db, password)
+          conn_id = shard_metadata.to_sym
+          @connections[shard_number] = [connection, conn_id]
+        end
+        connection
       end
 
       protected
-
-      def new_connection_to_shard(shard_number)
-        shard_metadata = metadata.shard(shard_number)
-        new_connection(shard_metadata.host, shard_metadata.port, db, password)
-      end
 
       def new_connection(host, port, db, password)
         Redis.new(:host => host, :port => port, :db => db, :password => password)

@@ -24,4 +24,14 @@ describe RedisRing::Client::ShardConnectionPool do
     @connection_pool.connection(1).should == :foo
   end
 
+  it "should create a new connection if the metadata changes" do
+    @connection_pool.expects(:new_connection).with("host1", 667, @db, @password).returns(:foo).once
+    @connection_pool.connection(1).should == :foo
+
+    @metadata.shards[1] = RedisRing::Client::ShardMetaData.new("host1", 777, :running)
+
+    @connection_pool.expects(:new_connection).with("host1", 777, @db, @password).returns(:bar).once
+    @connection_pool.connection(1).should == :bar
+  end
+
 end

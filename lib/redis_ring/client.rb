@@ -1,8 +1,8 @@
 require 'zlib'
-require 'net/http'
 
 require 'redis'
 require 'json'
+require 'zookeeper'
 
 require 'redis_ring/client/operation_definitions'
 require 'redis_ring/client/ring_proxy'

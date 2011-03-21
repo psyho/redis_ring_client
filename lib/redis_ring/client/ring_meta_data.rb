@@ -5,22 +5,18 @@ module RedisRing
 
     class RingMetaData
 
-      attr_reader :host, :port
+      attr_reader :zookeeper_addr, :zookeeper
 
-      def initialize(host, port)
-        @host = host
-        @port = port
-        @loaded = false
+      def initialize(zookeeper_addr)
+        @zookeeper_addr = zookeeper_addr
       end
 
       def reload!
         json = get_shards_json_string
         hash = JSON.parse(json)
 
-        @ring_size = hash['count']
+        @ring_size = hash['ring_size']
         @shards = (0...@ring_size).map{|n| ShardMetaData.from_json(hash['shards'][n.to_s])}
-
-        @loaded = true
       end
 
       def ring_size
@@ -42,11 +38,19 @@ module RedisRing
       protected
 
       def should_reload?
-        !@loaded
+        !@zookeeper || @watcher.completed?
       end
 
-      def get_shards_json_string
-        Net::HTTP.get(host, '/shards', port)
+      def get_shards_json_string(retries = 0)
+        @zookeeper ||= Zookeeper.new(zookeeper_addr)
+        @watcher = Zookeeper::WatcherCallback.new
+        resp = @zookeeper.get(:path => "/cluster_status", :watcher => @watcher, :watcher_context => "/cluster_status")
+        return resp[:data]
+      rescue ZookeeperExceptions::ZookeeperException::ConnectionClosed
+        raise if retries == 4
+        puts "reopening"
+        @zookeeper.reopen
+        return get_shards_json_string(retries + 1)
       end
 
     end
@@ -59,10 +63,15 @@ module RedisRing
         @host = host
         @port = port
         @status = status
+        @sym = :"Redis<#{host}:#{port}>"
       end
 
       def self.from_json(hash)
         new(hash['host'], hash['port'].to_i, hash['status'].to_sym)
+      end
+
+      def to_sym
+        @sym
       end
 
     end

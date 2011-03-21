@@ -36,8 +36,11 @@ describe RedisRing::Client::RingProxy do
   end
 
   context "with real RedisRing" do
-    before(:each) do
+    before(:all) do
       @proxy = RedisRing::Client::RingProxy.new
+    end
+
+    before(:each) do
       @proxy.flushdb
     end
 

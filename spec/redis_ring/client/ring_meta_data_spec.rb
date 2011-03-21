@@ -4,7 +4,7 @@ describe RedisRing::Client::RingMetaData do
 
   def sample_shards_hash
     {
-      :count => 10,
+      :ring_size => 10,
       :shards => {
         0 => {:host => '192.168.1.1', :port => 6401, :status => :running},
         1 => {:host => '192.168.1.1', :port => 6402, :status => :running},
@@ -24,19 +24,23 @@ describe RedisRing::Client::RingMetaData do
     sample_shards_hash.to_json
   end
 
-  it "should download json lazily" do
-    @metadata = RedisRing::Client::RingMetaData.new('host', 666)
+  def stub_zookeeper
+    Zookeeper.any_instance.expects(:get).returns(:data => sample_shard_json)
+  end
 
-    Net::HTTP.expects(:get).with('host', '/shards', 666).returns(sample_shard_json)
+  it "should download json lazily" do
+    @metadata = RedisRing::Client::RingMetaData.new('localhost:2181')
+
+    stub_zookeeper
 
     @metadata.ring_size.should == 10
   end
 
   context "with sample shards json" do
     before(:each) do
-      Net::HTTP.stubs(:get => sample_shard_json)
+      stub_zookeeper
 
-      @metadata = RedisRing::Client::RingMetaData.new('host', 666)
+      @metadata = RedisRing::Client::RingMetaData.new('localhost:2181')
     end
 
     it "should have ring_size of 10" do
