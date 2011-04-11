@@ -5,10 +5,11 @@ module RedisRing
 
     class RingMetaData
 
-      attr_reader :zookeeper_addr, :zookeeper
+      attr_reader :zookeeper_addr, :zookeeper, :cluster_name
 
-      def initialize(zookeeper_addr)
+      def initialize(zookeeper_addr, cluster_name)
         @zookeeper_addr = zookeeper_addr
+        @cluster_name = cluster_name
       end
 
       def reload!
@@ -44,7 +45,7 @@ module RedisRing
       def get_shards_json_string(retries = 0)
         @zookeeper ||= self.class.zookeeper(zookeeper_addr)
         @watcher = Zookeeper::WatcherCallback.new
-        resp = @zookeeper.get(:path => "/cluster_status", :watcher => @watcher, :watcher_context => "/cluster_status")
+        resp = @zookeeper.get(:path => "/#{cluster_name}_cluster_status", :watcher => @watcher, :watcher_context => "/#{cluster_name}/cluster_status")
         return resp[:data]
       rescue ZookeeperExceptions::ZookeeperException::ConnectionClosed
         raise if retries == 4

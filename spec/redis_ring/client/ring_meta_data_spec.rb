@@ -29,7 +29,7 @@ describe RedisRing::Client::RingMetaData do
   end
 
   it "should download json lazily" do
-    @metadata = RedisRing::Client::RingMetaData.new('localhost:2181')
+    @metadata = RedisRing::Client::RingMetaData.new('localhost:2181', 'some-name')
 
     stub_zookeeper
 
@@ -40,7 +40,7 @@ describe RedisRing::Client::RingMetaData do
     before(:each) do
       stub_zookeeper
 
-      @metadata = RedisRing::Client::RingMetaData.new('localhost:2181')
+      @metadata = RedisRing::Client::RingMetaData.new('localhost:2181', 'some-name')
     end
 
     it "should have ring_size of 10" do

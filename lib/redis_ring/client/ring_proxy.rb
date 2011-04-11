@@ -154,6 +154,7 @@ module RedisRing
         @zookeeper = opts[:zookeeper] || 'localhost:2181'
         @db = opts[:db] || 0
         @password = opts[:password]
+        @cluster_name = opts[:cluster_name] || 'redis-ring'
       end
 
       def connection_for_key(key)
@@ -174,7 +175,7 @@ module RedisRing
       protected
 
       def ring_meta_data
-        @ring_meta_data ||= RingMetaData.new(@zookeeper)
+        @ring_meta_data ||= RingMetaData.new(@zookeeper, @cluster_name)
       end
 
       def sharder

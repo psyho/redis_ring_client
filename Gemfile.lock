@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    redis_ring_client (0.1.0)
+    redis_ring_client (0.1.1)
       json
       redis
       zookeeper
